@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const timeRFC8601_6Digits = "2006-01-02T15:04:05.999999Z0700"
+const timeRFC8601_6Digits = "2006-01-02T15:04:05.000000Z0700"
 
 var albionLogRegex *regexp.Regexp
 

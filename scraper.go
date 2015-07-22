@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	//"net/http"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"io/ioutil"
 	"os"
@@ -114,7 +115,7 @@ type Scraper struct {
 	Sources       []*LogSource
 	StateFilename string // Filename where we store our cached state (ie high-water mark of our log files)
 	PollInterval  time.Duration
-	metaLogFile   *os.File
+	metaLogFile   io.Writer
 }
 
 func NewScraper(statefile string, metalogfile string) *Scraper {
@@ -122,19 +123,19 @@ func NewScraper(statefile string, metalogfile string) *Scraper {
 	s.PollInterval = 30 * time.Second
 	s.StateFilename = statefile
 	if metalogfile != "" {
-		var err error
-		s.metaLogFile, err = os.OpenFile(metalogfile, os.O_RDWR|os.O_CREATE, 0666)
-		if err != nil {
-			fmt.Printf("Unable to open metalog file: %v\n", err)
+		s.metaLogFile = &lumberjack.Logger{
+			Filename:   metalogfile,
+			MaxSize:    30, // megabytes
+			MaxBackups: 3,
 		}
-	}
-	if s.metaLogFile == nil {
+	} else {
 		s.metaLogFile = os.Stdout
 	}
 	return s
 }
 
 func (s *Scraper) Run() {
+	s.logMetaf("Scraper starting")
 	s.loadState()
 	for {
 		for _, src := range s.Sources {
@@ -143,6 +144,7 @@ func (s *Scraper) Run() {
 		s.saveState()
 		time.Sleep(s.PollInterval)
 	}
+	s.logMetaf("Scraper exiting")
 }
 
 func (s *Scraper) runSource(src *LogSource) {
@@ -191,6 +193,10 @@ func (s *Scraper) runSource(src *LogSource) {
 		}
 	}
 
+	if _, err = raw.Seek(src.lastPos, os.SEEK_SET); err != nil {
+		s.logMetaf("Seek before scan failed: %v", err)
+	}
+
 	s.scan(raw, src)
 }
 
@@ -200,6 +206,7 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 	output := &bytes.Buffer{}
 	encoder := json.NewEncoder(output)
 
+	discarded := 0
 	var prev_msg *LogMsg
 	for scanner.Scan() {
 		msg := src.Parse(scanner.Bytes())
@@ -213,6 +220,8 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 			if prev_msg != nil {
 				prev_msg.Message = append(prev_msg.Message, '\n')
 				prev_msg.Message = append(prev_msg.Message, scanner.Bytes()...)
+			} else {
+				discarded++
 			}
 		}
 	}
@@ -222,6 +231,9 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 	}
 	if prev_msg != nil {
 		prev_msg.toLogglyJson(encoder)
+	}
+	if discarded != 0 {
+		s.logMetaf("Discarded %v unparseable log lines from %v", discarded, src.Filename)
 	}
 	var err error
 	if src.lastPos, err = logFile.Seek(0, os.SEEK_CUR); err != nil {
@@ -347,5 +359,6 @@ func (s *Scraper) saveState() {
 }
 
 func (s *Scraper) logMetaf(msg string, params ...interface{}) {
-	s.metaLogFile.WriteString(fmt.Sprintf(msg+"\n", params...))
+	str := time.Now().Format(timeRFC8601_6Digits) + " " + fmt.Sprintf(msg+"\n", params...)
+	s.metaLogFile.Write([]byte(str))
 }

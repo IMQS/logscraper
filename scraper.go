@@ -18,10 +18,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//"net/http"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -56,15 +56,17 @@ func (l commonErrorLog) reset(err commonError) {
 
 type LogSource struct {
 	Filename  string
+	Name      string
 	Parse     Parser
 	firstLine []byte
 	lastPos   int64
 	errors    commonErrorLog
 }
 
-func NewLogSource(filename string, parse Parser) *LogSource {
+func NewLogSource(sourceName, filename string, parse Parser) *LogSource {
 	s := &LogSource{
 		Filename: filename,
+		Name:     sourceName,
 		Parse:    parse,
 	}
 	s.errors = make(commonErrorLog)
@@ -73,27 +75,50 @@ func NewLogSource(filename string, parse Parser) *LogSource {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// We separate LogMsg from logglyJsonMsg so that if we want to send our logs to a different format, it's straightforward.
+
 type LogMsg struct {
-	Time      time.Time
-	Severity  []byte
-	Message   []byte
-	ProcessID []byte
+	Time             time.Time
+	Severity         []byte
+	Message          []byte
+	ProcessID        []byte
+	ClientIP         []byte
+	Request          []byte
+	ResponseCode     []byte
+	ResponseBytes    []byte
+	ResponseDuration []byte
 }
 
 type logglyJsonMsg struct {
-	Time      string `json:"timestamp"`
-	Severity  string `json:"severity,omitempty"`
-	Message   string `json:"message"`
-	ProcessID int64  `json:"process_id,omitempty"`
+	Host             string  `json:"host"`
+	Source           string  `json:"source"`
+	Time             string  `json:"timestamp"`
+	Severity         string  `json:"severity,omitempty"`
+	Message          string  `json:"message,omitempty"`
+	ProcessID        int64   `json:"process_id,omitempty"`
+	ClientIP         string  `json:"client_ip,omitempty"`
+	Request          string  `json:"request,omitempty"`
+	ResponseCode     string  `json:"response_code,omitempty"`
+	ResponseBytes    int64   `json:"response_bytes,omitempty"`
+	ResponseDuration float64 `json:"response_duration,omitempty"`
 }
 
-func (m *LogMsg) toLogglyJson(target *json.Encoder) error {
+func (m *LogMsg) toLogglyJson(hostname string, source string, target *json.Encoder) error {
 	pid, _ := strconv.ParseInt(string(m.ProcessID), 16, 64)
+	respBytes, _ := strconv.ParseInt(string(m.ResponseBytes), 16, 64)
+	respDuration, _ := strconv.ParseFloat(string(m.ResponseDuration), 64)
 	j := logglyJsonMsg{
-		Time:      m.Time.Format(timeRFC8601_6Digits),
-		Severity:  string(m.Severity),
-		Message:   string(m.Message),
-		ProcessID: pid,
+		Host:             hostname,
+		Source:           source,
+		Time:             m.Time.Format(timeRFC8601_6Digits),
+		Severity:         string(m.Severity),
+		Message:          string(m.Message),
+		ProcessID:        pid,
+		ClientIP:         string(m.ClientIP),
+		Request:          string(m.Request),
+		ResponseCode:     string(m.ResponseCode),
+		ResponseBytes:    respBytes,
+		ResponseDuration: respDuration,
 	}
 	return target.Encode(&j)
 }
@@ -113,13 +138,19 @@ type stateJson struct {
 
 type Scraper struct {
 	Sources       []*LogSource
+	Hostname      string
 	StateFilename string // Filename where we store our cached state (ie high-water mark of our log files)
 	PollInterval  time.Duration
 	metaLogFile   io.Writer
 }
 
-func NewScraper(statefile string, metalogfile string) *Scraper {
+func NewScraper(hostname, statefile, metalogfile string) *Scraper {
 	s := &Scraper{}
+	if hostname != "" {
+		s.Hostname = hostname
+	} else {
+		s.Hostname, _ = os.Hostname()
+	}
 	s.PollInterval = 30 * time.Second
 	s.StateFilename = statefile
 	if metalogfile != "" {
@@ -206,23 +237,35 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 	output := &bytes.Buffer{}
 	encoder := json.NewEncoder(output)
 
+	// TODO: limit the number of lines that we scan in one go, to avoid sending a 100MB dump to loggly.
+	// In order to do that, we'll probably have to use a lower-level scanning mechanism so that we can
+	// get accurate seek positions when we stop.
 	discarded := 0
+	// Unparseable lines
+	extraLines := []byte{}
 	var prev_msg *LogMsg
 	for scanner.Scan() {
-		msg := src.Parse(scanner.Bytes())
+		// We need to make a copy of scanner.Bytes(), because we store a message for one or more loop
+		// iterations before dumping it to JSON. This does cause unnecessary GC pressure, but I'm leaving
+		// it like this until the scraper becomes a performance hotspot.
+		line := make([]byte, len(scanner.Bytes()))
+		copy(line, scanner.Bytes())
+		msg := src.Parse(line)
 		if msg != nil {
 			if prev_msg != nil {
-				prev_msg.toLogglyJson(encoder)
+				prev_msg.Message = append(prev_msg.Message, extraLines...)
+				prev_msg.toLogglyJson(s.Hostname, src.Name, encoder)
+			} else {
+				discarded += len(extraLines)
 			}
+			extraLines = []byte{}
 			prev_msg = msg
 		} else {
-			// This is a multi-line message. If we have no previous message, then discard this line.
-			if prev_msg != nil {
-				prev_msg.Message = append(prev_msg.Message, '\n')
-				prev_msg.Message = append(prev_msg.Message, scanner.Bytes()...)
-			} else {
-				discarded++
-			}
+			// This might be multi-line message. Save it in a buffer, and append it to the previous message,
+			// as soon as we find a new parseable message. By saving the lines in a buffer, we avoid storing
+			// a half-written message from the end of the file.
+			extraLines = append(extraLines, '\n')
+			extraLines = append(extraLines, line...)
 		}
 	}
 	if scanner.Err() != nil {
@@ -230,10 +273,10 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		return
 	}
 	if prev_msg != nil {
-		prev_msg.toLogglyJson(encoder)
+		prev_msg.toLogglyJson(s.Hostname, src.Name, encoder)
 	}
 	if discarded != 0 {
-		s.logMetaf("Discarded %v unparseable log lines from %v", discarded, src.Filename)
+		s.logMetaf("Discarded %v unparseable bytes from %v", discarded, src.Filename)
 	}
 	var err error
 	if src.lastPos, err = logFile.Seek(0, os.SEEK_CUR); err != nil {
@@ -241,8 +284,16 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		return
 	}
 	if output.Len() != 0 {
-		fmt.Printf("Output:\n%v", string(output.Bytes()))
+		/*
+			fmt.Printf("Output:\n%v", string(output.Bytes()))
+			if dump, err := os.OpenFile("c:/imqsvar/logs/all.json", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666); err == nil {
+				dump.Write(output.Bytes())
+				dump.Close()
+			} else {
+				fmt.Printf("Cannot open dump file: %v\n", err)
+			}*/
 		//http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999/tag/ImqsCpp", "application/json", bytes.NewReader(output.Bytes()))
+		http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes()))
 	}
 }
 

@@ -7,9 +7,11 @@ import (
 
 const timeRFC8601_6Digits = "2006-01-02T15:04:05.000000Z0700"
 const timeApache = "02/Jan/2006:15:04:05 -0700"
+const timeJava = "2006-01-02 15:04:05.000 -0700"
 
 var albionLogRegex *regexp.Regexp
 var goLogRegex *regexp.Regexp
+var javaLogRegex *regexp.Regexp
 var routerLogRegex *regexp.Regexp
 
 func AlbionLogParser(msg []byte) *LogMsg {
@@ -39,6 +41,23 @@ func GoLogParser(msg []byte) *LogMsg {
 	m.Time, err = time.Parse(timeRFC8601_6Digits, string(getCapture(msg, matches, 0)))
 	m.Severity = getCapture(msg, matches, 1)
 	m.Message = getCapture(msg, matches, 2)
+	if err != nil {
+		return nil
+	}
+	return m
+}
+
+func JavaLogParser(msg []byte) *LogMsg {
+	matches := javaLogRegex.FindSubmatchIndex(msg)
+	if len(matches) != (4+1)*2 {
+		return nil
+	}
+	var err error
+	m := &LogMsg{}
+	m.Time, err = time.Parse(timeJava, string(getCapture(msg, matches, 0)))
+	m.Severity = getCapture(msg, matches, 1)
+	m.JavaClass = getCapture(msg, matches, 2)
+	m.Message = getCapture(msg, matches, 3)
 	if err != nil {
 		return nil
 	}
@@ -80,6 +99,9 @@ func init() {
 
 	// 2015-07-15T14:53:51.979201+0200 [I] Service: Starting
 	goLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\S+) \[([A-Z])\] (.*)`)
+
+	// 2015-07-30 10:34:49.196 +0200 INFO  org.eclipse.jetty.server.Server jetty-9.0.2.v20130417
+	javaLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2} \S+ \S+) (\S+)\s+(\S+) (\S+)`)
 
 	// 127.0.0.1 - - [27/Jul/2015:15:15:45 +0200] "GET /albjs/tile_sc/... HTTP/1.1" 200 62223 3.8250
 	routerLogRegex = regexp.MustCompile(`(\S+) (\S+) (\S+) \[([^\]]+)\] "([^"]+)" (\S+) (\S+) (\S+)`)

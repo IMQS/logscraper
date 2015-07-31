@@ -15,6 +15,7 @@ func main() {
 	s.Sources = append(s.Sources, logscraper.NewLogSource("router_error", "c:/imqsvar/logs/router-error.log", logscraper.GoLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("search_access", "c:/imqsvar/logs/search-access.log", logscraper.GoLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("search_error", "c:/imqsvar/logs/search-error.log", logscraper.GoLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("docs", "c:/imqsvar/logs/ImqsDocs.log", logscraper.JavaLogParser))
 	run := func() {
 		s.Run()
 	}

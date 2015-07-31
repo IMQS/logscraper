@@ -102,7 +102,7 @@ type logglyJsonMsg struct {
 	ResponseCode     string  `json:"response_code,omitempty"`
 	ResponseBytes    int64   `json:"response_bytes,omitempty"`
 	ResponseDuration float64 `json:"response_duration,omitempty"`
-	JavaClass        float64 `json:"java_class,omitempty"`
+	JavaClass        string  `json:"java_class,omitempty"`
 }
 
 func (m *LogMsg) toLogglyJson(hostname string, source string, target *json.Encoder) error {

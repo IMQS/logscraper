@@ -144,6 +144,7 @@ type Scraper struct {
 	Hostname      string
 	StateFilename string // Filename where we store our cached state (ie high-water mark of our log files)
 	PollInterval  time.Duration
+	SendToLoggly  bool
 	metaLogFile   io.Writer
 }
 
@@ -288,7 +289,6 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 	}
 	if output.Len() != 0 {
 		/*
-			fmt.Printf("Output:\n%v", string(output.Bytes()))
 			if dump, err := os.OpenFile("c:/imqsvar/logs/all.json", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666); err == nil {
 				dump.Write(output.Bytes())
 				dump.Close()
@@ -296,7 +296,11 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 				fmt.Printf("Cannot open dump file: %v\n", err)
 			}*/
 		//http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999/tag/ImqsCpp", "application/json", bytes.NewReader(output.Bytes()))
-		http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes()))
+		if s.SendToLoggly {
+			http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes()))
+		} else {
+			fmt.Printf("Output:\n%v", string(output.Bytes()))
+		}
 	}
 }
 

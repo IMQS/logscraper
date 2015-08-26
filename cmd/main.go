@@ -17,6 +17,7 @@ func main() {
 	s.Sources = append(s.Sources, logscraper.NewLogSource("search_error", "c:/imqsvar/logs/search-error.log", logscraper.GoLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("docs", "c:/imqsvar/logs/ImqsDocs.log", logscraper.JavaLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("scheduler", "c:/imqsvar/logs/scheduler.log", logscraper.GoLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("ping", "c:/imqsvar/logs/service-ping.log", logscraper.GoLogParser))
 
 	// Comment out the following line when debugging
 	s.SendToLoggly = true

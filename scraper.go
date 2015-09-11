@@ -297,7 +297,14 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 			}*/
 		//http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999/tag/ImqsCpp", "application/json", bytes.NewReader(output.Bytes()))
 		if s.SendToLoggly {
-			http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes()))
+			var resp *http.Response
+			resp, err :=  http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes())); 
+			if err != nil {
+				s.logMetaf("Error posting log message to %v", err)
+				return
+			}
+			resp.Body.Close()
+			
 		} else {
 			fmt.Printf("Output:\n%v", string(output.Bytes()))
 		}

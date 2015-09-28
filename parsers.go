@@ -49,15 +49,17 @@ func GoLogParser(msg []byte) *LogMsg {
 
 func JavaLogParser(msg []byte) *LogMsg {
 	matches := javaLogRegex.FindSubmatchIndex(msg)
-	if len(matches) != (4+1)*2 {
+	if len(matches) != (6+1)*2 {
 		return nil
 	}
 	var err error
 	m := &LogMsg{}
-	m.Time, err = time.Parse(timeJava, string(getCapture(msg, matches, 0)))
-	m.Severity = getCapture(msg, matches, 1)
-	m.JavaClass = getCapture(msg, matches, 2)
-	m.Message = getCapture(msg, matches, 3)
+	m.Severity = getCapture(msg, matches, 0)
+	m.Time, err = time.Parse(timeJava, string(getCapture(msg, matches, 1)))
+	// m.Thread = getCapture(msg, matches, 2)
+	// m.MessageId = getCapture(msg, matches, 3)
+	m.JavaClass = getCapture(msg, matches, 4)
+	m.Message = getCapture(msg, matches, 5)
 	if err != nil {
 		return nil
 	}
@@ -101,7 +103,7 @@ func init() {
 	goLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\S+) \[([A-Z])\] (.*)`)
 
 	// 2015-07-30 10:34:49.196 +0200 INFO  org.eclipse.jetty.server.Server jetty-9.0.2.v20130417
-	javaLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2} \S+ \S+) (\S+)\s+(\S+) (\S+)`)
+	javaLogRegex = regexp.MustCompile(`(\S+)\s+(\d{4}-\d{2}-\d{2} \S+ \S+) (\S+)\s(\S*)\s\s(\S+)\s-\s(.*)`)
 
 	// 127.0.0.1 - - [27/Jul/2015:15:15:45 +0200] "GET /albjs/tile_sc/... HTTP/1.1" 200 62223 3.8250
 	routerLogRegex = regexp.MustCompile(`(\S+) (\S+) (\S+) \[([^\]]+)\] "([^"]+)" (\S+) (\S+) (\S+)`)

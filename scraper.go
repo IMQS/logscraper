@@ -287,6 +287,7 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		s.logMetaf("Unable to find current file location after scanning %v: %v", src.Filename, err)
 		return
 	}
+	fmt.Printf("Scanning %s, outputLen = %d\n", src.Filename, output.Len())
 	if output.Len() != 0 {
 		/*
 			if dump, err := os.OpenFile("c:/imqsvar/logs/all.json", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666); err == nil {
@@ -298,13 +299,13 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		//http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999/tag/ImqsCpp", "application/json", bytes.NewReader(output.Bytes()))
 		if s.SendToLoggly {
 			var resp *http.Response
-			resp, err :=  http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes())); 
+			resp, err := http.DefaultClient.Post("http://logs-01.loggly.com/bulk/9bc39e17-f062-4bef-9e28-b8456feaa999", "application/json", bytes.NewReader(output.Bytes()))
 			if err != nil {
 				s.logMetaf("Error posting log message to %v", err)
 				return
 			}
 			resp.Body.Close()
-			
+
 		} else {
 			fmt.Printf("Output:\n%v", string(output.Bytes()))
 		}

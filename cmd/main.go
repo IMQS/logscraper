@@ -18,6 +18,10 @@ func main() {
 	s.Sources = append(s.Sources, logscraper.NewLogSource("docs", "c:/imqsvar/logs/ImqsDocs.log", logscraper.JavaLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("scheduler", "c:/imqsvar/logs/scheduler.log", logscraper.GoLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("ping", "c:/imqsvar/logs/service-ping.log", logscraper.GoLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_webservice", "c:/imqsvar/logs/services/webservice.log", logscraper.JavaLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_operations", "c:/imqsvar/logs/services/operations.log", logscraper.JavaLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_notifications", "c:/imqsvar/logs/services/notifications.log", logscraper.JavaLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_classification", "c:/imqsvar/logs/services/data-model-queries.log", logscraper.JavaLogParser))
 
 	// Comment out the following line when debugging
 	s.SendToLoggly = true

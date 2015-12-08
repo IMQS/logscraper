@@ -1,6 +1,7 @@
 package logscraper
 
 import (
+	"bytes"
 	"regexp"
 	"time"
 )
@@ -8,11 +9,13 @@ import (
 const timeRFC8601_6Digits = "2006-01-02T15:04:05.000000Z0700"
 const timeApache = "02/Jan/2006:15:04:05 -0700"
 const timeJava = "2006-01-02 15:04:05.000 -0700"
+const timeYellowfin = "2006-01-02 15:04:05"
 
 var albionLogRegex *regexp.Regexp
 var goLogRegex *regexp.Regexp
 var javaLogRegex *regexp.Regexp
 var routerLogRegex *regexp.Regexp
+var yellowfinLogRegex *regexp.Regexp
 
 func AlbionLogParser(msg []byte) *LogMsg {
 	matches := albionLogRegex.FindSubmatchIndex(msg)
@@ -85,6 +88,22 @@ func RouterLogParser(msg []byte) *LogMsg {
 	return m
 }
 
+func YellowfinLogParser(msg []byte) *LogMsg {
+	matches := yellowfinLogRegex.FindSubmatchIndex(msg)
+	if len(matches) != (4+1)*2 {
+		return nil
+	}
+	var err error
+	m := &LogMsg{}
+	m.Time, err = time.ParseInLocation(timeYellowfin, string(getCapture(msg, matches, 1)), time.Local)
+	m.Severity = bytes.TrimSpace(getCapture(msg, matches, 2))
+	m.Message = getCapture(msg, matches, 3)
+	if err != nil {
+		return nil
+	}
+	return m
+}
+
 // Extract a zero-based capture from a set of regex captures
 // matches[0] .. matches[1] is the entire matched expression
 // matches[2] .. matches[3] is first subexpression
@@ -107,4 +126,8 @@ func init() {
 
 	// 127.0.0.1 - - [27/Jul/2015:15:15:45 +0200] "GET /albjs/tile_sc/... HTTP/1.1" 200 62223 3.8250
 	routerLogRegex = regexp.MustCompile(`(\S+) (\S+) (\S+) \[([^\]]+)\] "([^"]+)" (\S+) (\S+) (\S+)`)
+
+	// 2015-11-24 16:40:47: INFO (HtmlExporter:C) - Exporting report to HTML (56548: Existing Sewer Gravity Pipe Breakdown (by System Type))
+	// 2015-12-02 02:00:00:ERROR (ReportRunner:M) - Error retrieving results: java.lang.Exception: Exception selecting data from database java.lang.Exception: Exception selecting data from database
+	yellowfinLogRegex = regexp.MustCompile(`(\S+):(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}):(\s*\s*\S+)\s+(.*)`)
 }

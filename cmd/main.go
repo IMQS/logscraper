@@ -26,6 +26,8 @@ func main() {
 	s.Sources = append(s.Sources, logscraper.NewLogSource("yellowfin", "c:/imqsvar/yellowfin/appserver/logs/yellowfin.log", logscraper.YellowfinLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("www_server", "c:/imqsvar/logs/www-server.log", logscraper.GoLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("www_js", "c:/imqsvar/logs/www-js.log", logscraper.GoLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("timeseries", "c:/imqsvar/logs/imqs-timeseries.log", logscraper.GoLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("insite", "c:/imqsvar/logs/insite.log", logscraper.GoLogParser))
 
 	// Comment out the following line when debugging
 	s.SendToLoggly = true

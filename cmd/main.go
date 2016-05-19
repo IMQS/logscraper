@@ -21,7 +21,7 @@ func main() {
 	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_webservice", "c:/imqsvar/logs/services/webservice.log", logscraper.JavaLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_operations", "c:/imqsvar/logs/services/operations.log", logscraper.JavaLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_notifications", "c:/imqsvar/logs/services/notifications.log", logscraper.JavaLogParser))
-	s.Sources = append(s.Sources, logscraper.NewLogSource("sap_classification", "c:/imqsvar/logs/services/data-model-queries.log", logscraper.JavaLogParser))
+	s.Sources = append(s.Sources, logscraper.NewLogSource("data_model_queries", "c:/imqsvar/logs/services/data-model-queries.log", logscraper.JavaLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("pcs", "c:/imqsvar/logs/services/pcs/imqs-pcs-ws.log", logscraper.JavaLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("yellowfin", "c:/imqsvar/yellowfin/appserver/logs/yellowfin.log", logscraper.YellowfinLogParser))
 	s.Sources = append(s.Sources, logscraper.NewLogSource("www_server", "c:/imqsvar/logs/www-server.log", logscraper.GoLogParser))

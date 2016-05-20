@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"errors"
 )
 
 var parsersByName = map[string]Parser{
@@ -26,7 +27,7 @@ type LogScraperConfig struct {
 
 func LoadLogScraperConfig(file string) (*LogScraperConfig, error) {
 	if file == "" {
-		return nil, fmt.Errorf("Config file cannot be nil")
+		return nil, errors.New("Config file cannot be nil")
 	}
 
 	var cfg LogScraperConfig

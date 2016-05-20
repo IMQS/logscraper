@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
-
+	"errors"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -170,26 +170,26 @@ func NewScraper(hostname, statefile, metalogfile string) *Scraper {
 	return s
 }
 
-func (s *Scraper) LoadConfiguration(file string) {
+func (s *Scraper) LoadConfiguration(file string) error {
 	config, err := LoadLogScraperConfig(file)
 	if err != nil {
-		fmt.Print(err)
 		s.logMetaf("Error opening configuraton file: %v", err)
-		return
+		return err
 	}
 
-	logSources, errors := config.LogSources()
-	if errors != nil && len(errors) > 0 {
-		for _, err := range errors {
+	logSources, errs := config.LogSources()
+	if errs != nil && len(errs) > 0 {
+		for _, err := range errs {
 			s.logMetaf("Error parsing configuraton file: %v", err)
 		}
-		return
+		return errors.New("Parsing configuration file failed")
 	}
 
 	s.Sources = append(s.Sources, logSources...)
 	for _, src := range s.Sources {
 		fmt.Printf("Source loaded: %v\n", src)
 	}
+	return nil
 }
 
 func (s *Scraper) Run() {

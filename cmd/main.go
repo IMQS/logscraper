@@ -4,13 +4,17 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"log"
 
 	"github.com/IMQS/logscraper"
 )
 
 func main() {
 	s := logscraper.NewScraper(getHostname(), "c:/imqsvar/logs/scraper-state.json", "c:/imqsvar/logs/scraper.log")
-	s.LoadConfiguration("C:/imqsbin/static-conf/logscraper-config.json")
+	err := s.LoadConfiguration("C:/imqsbin/static-conf/logscraper-config.json")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Comment out the following line when debugging
 	s.SendToLoggly = true

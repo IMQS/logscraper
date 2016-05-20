@@ -5,13 +5,21 @@ import (
 	"os"
 	"strings"
 	"log"
-
+	"flag"
 	"github.com/IMQS/logscraper"
 )
 
 func main() {
 	s := logscraper.NewScraper(getHostname(), "c:/imqsvar/logs/scraper-state.json", "c:/imqsvar/logs/scraper.log")
-	err := s.LoadConfiguration("C:/imqsbin/static-conf/logscraper-config.json")
+
+	conffile := flag.String("config", "", "Config file location")
+	flag.Parse()
+
+	if *conffile == "" {
+		log.Fatal("Usage: logscraper --config=/path/to/file.json")
+	}
+
+	err := s.LoadConfiguration(*conffile)
 	if err != nil {
 		log.Fatal(err)
 	}

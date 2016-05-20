@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -27,6 +26,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Parser func(msg []byte) *LogMsg
@@ -169,6 +170,28 @@ func NewScraper(hostname, statefile, metalogfile string) *Scraper {
 	return s
 }
 
+func (s *Scraper) LoadConfiguration(file string) {
+	config, err := LoadLogScraperConfig(file)
+	if err != nil {
+		fmt.Print(err)
+		s.logMetaf("Error opening configuraton file: %v", err)
+		return
+	}
+
+	logSources, errors := config.LogSources()
+	if errors != nil && len(errors) > 0 {
+		for _, err := range errors {
+			s.logMetaf("Error parsing configuraton file: %v", err)
+		}
+		return
+	}
+
+	s.Sources = append(s.Sources, logSources...)
+	for _, src := range s.Sources {
+		fmt.Printf("Source loaded: %v\n", src)
+	}
+}
+
 func (s *Scraper) Run() {
 	s.logMetaf("Scraper starting")
 	s.loadState()
@@ -307,7 +330,7 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 			resp.Body.Close()
 
 		} else {
-			fmt.Printf("Output:\n%v", string(output.Bytes()))
+			fmt.Printf("Output:\n%v\n", string(output.Bytes()))
 		}
 	}
 }

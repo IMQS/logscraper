@@ -32,19 +32,32 @@ func LoadLogScraperConfig(file string) (*LogScraperConfig, error) {
 
 	var cfg LogScraperConfig
 	bytes, err := ioutil.ReadFile(file)
-	if err == nil {
-		err = json.Unmarshal(bytes, &cfg)
+	if err != nil {
+		return nil, err
 	}
+
+	if err := json.Unmarshal(bytes, &cfg); err != nil {
+		return nil, err
+	}
+
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
+
 	return &cfg, err
 }
 
-func (config *LogScraperConfig) LogSources() ([]*LogSource, []error) {
-	if config.Sources == nil || len(config.Sources) == 0 {
-		return make([]*LogSource, 0), nil
+func (cfg *LogScraperConfig) validate() error {
+	if cfg.Sources == nil || len(cfg.Sources) == 0 {
+		return errors.New("No log sources found in config file")
 	}
+	return nil
+}
 
+func (config *LogScraperConfig) LogSources() ([]*LogSource, []error) {
 	logSources := make([]*LogSource, len(config.Sources))
 	errs := make([]error, 0)
+
 	for ind, v := range config.Sources {
 		if _, ok := parsersByName[v.Parser]; ok {
 			logSources[ind] = NewLogSource(v.Name, v.Filename, parsersByName[v.Parser])

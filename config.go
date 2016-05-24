@@ -40,18 +40,11 @@ func LoadLogScraperConfig(file string) (*LogScraperConfig, error) {
 		return nil, err
 	}
 
-	if err := cfg.validate(); err != nil {
-		return nil, err
-	}
+   if cfg.Sources == nil || len(cfg.Sources) == 0 {
+      return nil, errors.New("No log sources found in config file")
+   }
 
 	return &cfg, err
-}
-
-func (cfg *LogScraperConfig) validate() error {
-	if cfg.Sources == nil || len(cfg.Sources) == 0 {
-		return errors.New("No log sources found in config file")
-	}
-	return nil
 }
 
 func (config *LogScraperConfig) LogSources() ([]*LogSource, []error) {

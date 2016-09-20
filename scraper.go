@@ -17,7 +17,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -26,8 +28,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
-	"errors"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Parser func(msg []byte) *LogMsg
@@ -93,6 +93,7 @@ type LogMsg struct {
 
 type logglyJsonMsg struct {
 	Host             string  `json:"host"`
+	OwnHostname      string  `json:"ownhostname"`
 	Source           string  `json:"source"`
 	Time             string  `json:"timestamp"`
 	Severity         string  `json:"severity,omitempty"`
@@ -106,12 +107,13 @@ type logglyJsonMsg struct {
 	JavaClass        string  `json:"java_class,omitempty"`
 }
 
-func (m *LogMsg) toLogglyJson(hostname string, source string, target *json.Encoder) error {
+func (m *LogMsg) toLogglyJson(hostname string, ownhostname string, source string, target *json.Encoder) error {
 	pid, _ := strconv.ParseInt(string(m.ProcessID), 16, 64)
 	respBytes, _ := strconv.ParseInt(string(m.ResponseBytes), 16, 64)
 	respDuration, _ := strconv.ParseFloat(string(m.ResponseDuration), 64)
 	j := logglyJsonMsg{
 		Host:             hostname,
+		OwnHostname:      ownhostname,
 		Source:           source,
 		Time:             m.Time.Format(timeRFC8601_6Digits),
 		Severity:         string(m.Severity),
@@ -143,19 +145,17 @@ type stateJson struct {
 type Scraper struct {
 	Sources       []*LogSource
 	Hostname      string
+	OwnHostname   string
 	StateFilename string // Filename where we store our cached state (ie high-water mark of our log files)
 	PollInterval  time.Duration
 	SendToLoggly  bool
 	metaLogFile   io.Writer
 }
 
-func NewScraper(hostname, statefile, metalogfile string) *Scraper {
+func NewScraper(hostname, ownhostname, statefile, metalogfile string) *Scraper {
 	s := &Scraper{}
-	if hostname != "" {
-		s.Hostname = hostname
-	} else {
-		s.Hostname, _ = os.Hostname()
-	}
+	s.Hostname = hostname
+	s.OwnHostname = ownhostname
 	s.PollInterval = 30 * time.Second
 	s.StateFilename = statefile
 	if metalogfile != "" {
@@ -281,7 +281,7 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		if msg != nil {
 			if prev_msg != nil {
 				prev_msg.Message = append(prev_msg.Message, extraLines...)
-				prev_msg.toLogglyJson(s.Hostname, src.Name, encoder)
+				prev_msg.toLogglyJson(s.Hostname, s.OwnHostname, src.Name, encoder)
 			} else {
 				discarded += len(extraLines)
 			}
@@ -300,7 +300,7 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		return
 	}
 	if prev_msg != nil {
-		prev_msg.toLogglyJson(s.Hostname, src.Name, encoder)
+		prev_msg.toLogglyJson(s.Hostname, s.OwnHostname, src.Name, encoder)
 	}
 	if discarded != 0 {
 		s.logMetaf("Discarded %v unparseable bytes from %v", discarded, src.Filename)

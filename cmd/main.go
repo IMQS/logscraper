@@ -1,16 +1,18 @@
 package main
 
 import (
-	"io/ioutil"
-	"os"
-	"strings"
-	"log"
 	"flag"
 	"github.com/IMQS/logscraper"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
 )
 
 func main() {
-	s := logscraper.NewScraper(getHostname(), "c:/imqsvar/logs/scraper-state.json", "c:/imqsvar/logs/scraper.log")
+
+	ownhostname, _ := os.Hostname()
+	s := logscraper.NewScraper(getHostname(), ownhostname, "c:/imqsvar/logs/scraper-state.json", "c:/imqsvar/logs/scraper.log")
 
 	conffile := flag.String("config", "", "Config file location")
 	flag.Parse()
@@ -47,6 +49,6 @@ func getHostname() string {
 			return line
 		}
 	}
-	host, _ := os.Hostname()
-	return host
+
+	return ""
 }

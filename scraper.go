@@ -83,6 +83,7 @@ type LogMsg struct {
 	Severity         []byte
 	Message          []byte
 	ProcessID        []byte
+	ThreadID         []byte
 	ClientIP         []byte
 	Request          []byte
 	ResponseCode     []byte
@@ -99,6 +100,7 @@ type logglyJsonMsg struct {
 	Severity         string  `json:"severity,omitempty"`
 	Message          string  `json:"message,omitempty"`
 	ProcessID        int64   `json:"process_id,omitempty"`
+	ThreadID         int64   `json:"thread_id,omitempty"`
 	ClientIP         string  `json:"client_ip,omitempty"`
 	Request          string  `json:"request,omitempty"`
 	ResponseCode     string  `json:"response_code,omitempty"`
@@ -109,6 +111,7 @@ type logglyJsonMsg struct {
 
 func (m *LogMsg) toLogglyJson(hostname string, ownhostname string, source string, target *json.Encoder) error {
 	pid, _ := strconv.ParseInt(string(m.ProcessID), 16, 64)
+	tid, _ := strconv.ParseInt(string(m.ThreadID), 16, 64)
 	respBytes, _ := strconv.ParseInt(string(m.ResponseBytes), 16, 64)
 	respDuration, _ := strconv.ParseFloat(string(m.ResponseDuration), 64)
 	j := logglyJsonMsg{
@@ -119,6 +122,7 @@ func (m *LogMsg) toLogglyJson(hostname string, ownhostname string, source string
 		Severity:         string(m.Severity),
 		Message:          string(m.Message),
 		ProcessID:        pid,
+		ThreadID:         tid,
 		ClientIP:         string(m.ClientIP),
 		Request:          string(m.Request),
 		ResponseCode:     string(m.ResponseCode),

@@ -7,12 +7,14 @@ import (
 )
 
 const timeRFC8601_6Digits = "2006-01-02T15:04:05.000000Z0700"
+const timeSpdLog = "2006-01-02T15:04:05.000000Z07:00"
 const timeApache = "02/Jan/2006:15:04:05 -0700"
 const timeJava = "2006-01-02 15:04:05.000 -0700"
 const timeYellowfin = "2006-01-02 15:04:05"
 
 var albionLogRegex *regexp.Regexp
 var goLogRegex *regexp.Regexp
+var spdLogRegex *regexp.Regexp
 var javaLogRegex *regexp.Regexp
 var routerLogRegex *regexp.Regexp
 var yellowfinLogRegex *regexp.Regexp
@@ -27,6 +29,23 @@ func AlbionLogParser(msg []byte) *LogMsg {
 	m.Time, err = time.Parse(timeRFC8601_6Digits, string(getCapture(msg, matches, 0)))
 	m.Severity = getCapture(msg, matches, 1)
 	m.ProcessID = getCapture(msg, matches, 2)
+	m.Message = getCapture(msg, matches, 3)
+	if err != nil {
+		return nil
+	}
+	return m
+}
+
+func SpdLogParser(msg []byte) *LogMsg {
+	matches := spdLogRegex.FindSubmatchIndex(msg)
+	if len(matches) != (4+1)*2 {
+		return nil
+	}
+	var err error
+	m := &LogMsg{}
+	m.Time, err = time.Parse(timeSpdLog, string(getCapture(msg, matches, 0)))
+	m.Severity = getCapture(msg, matches, 1)
+	m.ThreadID = getCapture(msg, matches, 2)
 	m.Message = getCapture(msg, matches, 3)
 	if err != nil {
 		return nil
@@ -120,6 +139,9 @@ func init() {
 
 	// 2015-07-15T14:53:51.979201+0200 [I] Service: Starting
 	goLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\S+) \[([A-Z])\] (.*)`)
+
+	// 2016-09-27T15:57:19.166825+02:00 [I] 22452 hello
+	spdLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\S+) \[([A-Z])\] ([0-9]+) (.*)`)
 
 	// 2015-07-30 10:34:49.196 +0200 INFO  org.eclipse.jetty.server.Server jetty-9.0.2.v20130417
 	javaLogRegex = regexp.MustCompile(`(\S+)\s+(\d{4}-\d{2}-\d{2} \S+ \S+) (\S+)\s(\S*)\s\s(\S+)\s-\s(.*)`)

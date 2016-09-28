@@ -2,13 +2,14 @@ package logscraper
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"errors"
 )
 
 var parsersByName = map[string]Parser{
 	"go":        GoLogParser,
+	"spd":       SpdLogParser,
 	"albion":    AlbionLogParser,
 	"router":    RouterLogParser,
 	"java":      JavaLogParser,
@@ -40,9 +41,9 @@ func LoadLogScraperConfig(file string) (*LogScraperConfig, error) {
 		return nil, err
 	}
 
-   if cfg.Sources == nil || len(cfg.Sources) == 0 {
-      return nil, errors.New("No log sources found in config file")
-   }
+	if cfg.Sources == nil || len(cfg.Sources) == 0 {
+		return nil, errors.New("No log sources found in config file")
+	}
 
 	return &cfg, err
 }

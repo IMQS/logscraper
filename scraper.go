@@ -175,7 +175,7 @@ func NewScraper(hostname, ownhostname, statefile, metalogfile string) *Scraper {
 }
 
 func (s *Scraper) LoadConfiguration(file string) error {
-	config, err := LoadLogScraperConfig(file)
+	config, err := LoadServiceRegistryConfig(file)
 	if err != nil {
 		s.logMetaf("Error opening configuraton file: %v", err)
 		return err
@@ -260,6 +260,7 @@ func (s *Scraper) runSource(src *LogSource) {
 	}
 
 	s.scan(raw, src)
+
 }
 
 func (s *Scraper) scan(logFile *os.File, src *LogSource) {

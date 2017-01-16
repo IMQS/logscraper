@@ -143,7 +143,7 @@ func init() {
 	// 2016-09-27T15:57:19.166825+02:00 [I] 22452 hello
 	spdLogRegex = regexp.MustCompile(`(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\S+) \[([A-Z])\] ([0-9]+) (.*)`)
 
-	// 2015-07-30 10:34:49.196 +0200 INFO  org.eclipse.jetty.server.Server jetty-9.0.2.v20130417
+	// INFO 2015-07-30 10:34:49.196 +0200 INFO org.eclipse.jetty.server.Server  jetty - 9.0.2.v20130417
 	javaLogRegex = regexp.MustCompile(`(\S+)\s+(\d{4}-\d{2}-\d{2} \S+ \S+) (\S+)\s(\S*)\s\s(\S+)\s-\s(.*)`)
 
 	// 127.0.0.1 - - [27/Jul/2015:15:15:45 +0200] "GET /albjs/tile_sc/... HTTP/1.1" 200 62223 3.8250

@@ -13,6 +13,7 @@ func main() {
 
 	ownhostname, _ := os.Hostname()
 	s := logscraper.NewScraper(getHostname(), ownhostname, "c:/imqsvar/logs/scraper-state.json", "c:/imqsvar/logs/scraper.log")
+	logscraper.InitialiseRelayers(s)
 
 	conffile := flag.String("config", "", "Config file location")
 	flag.Parse()

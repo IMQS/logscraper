@@ -32,6 +32,10 @@ var datadogSeverities = map[string]bool{
 	"FATAL": true,
 	"F":     true,
 }
+var datadogSourceExclusions = map[string]bool{
+	"www_js":    true,
+	"yellowfin": true,
+}
 
 type Relay interface {
 	Send(messages []*LogMsg)
@@ -106,7 +110,10 @@ func (dr *DatadogReceiver) Send(messages []*LogMsg) {
 	//Datadog can't send an array of messages, we have to send them one-by-one.
 	//This should be OK as we are only sending ERROR and FATAL messages.
 	for _, message := range messages {
-		if _, ok := datadogSeverities[string(message.Severity)]; ok {
+		_, severityOK := datadogSeverities[string(message.Severity)]
+		_, sourceExcl := datadogSourceExclusions[string(message.Source)]
+
+		if severityOK && !sourceExcl {
 			output := &bytes.Buffer{}
 			encoder := json.NewEncoder(output)
 			message.toDatadogJson(dr.Host, encoder)

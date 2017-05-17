@@ -129,11 +129,12 @@ func (dr *DatadogReceiver) Send(messages []*LogMsg) {
 
 func (m *LogMsg) toDatadogJson(host string, target *json.Encoder) error {
 	j := datadogJsonMessage{
-		Host:      host,
-		Title:     string(m.Source),
-		Text:      string(m.Message),
-		Time:      m.Time.Unix(),
-		AlertType: "error",
+		Host:           host,
+		Title:          string(m.Source),
+		Text:           string(m.Message),
+		Time:           m.Time.Unix(),
+		AlertType:      "error",
+		AggregationKey: string(m.Source) + ":" + host,
 	}
 	return target.Encode(&j)
 }

@@ -121,8 +121,9 @@ func (dr *DatadogReceiver) Send(messages []*LogMsg) {
 			resp, err := http.DefaultClient.Post(dr.URL+"?api_key="+dr.ApiKey, "application/json", bytes.NewReader(output.Bytes()))
 			if err != nil {
 				dr.s.logMetaf("Error posting log message to %v", err)
+			} else {
+				resp.Body.Close()
 			}
-			resp.Body.Close()
 		}
 	}
 }

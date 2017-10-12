@@ -1,10 +1,10 @@
 package logscraper
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
+
+	"github.com/IMQS/serviceconfigsgo"
 )
 
 var parsersByName = map[string]Parser{
@@ -15,6 +15,12 @@ var parsersByName = map[string]Parser{
 	"java":      JavaLogParser,
 	"yellowfin": YellowfinLogParser,
 }
+
+const (
+	serviceRegistryConfigFileName = "service-registry.json"
+	serviceRegistryConfigVersion  = 1
+	serviceName                   = "ImqsLogScraper"
+)
 
 type ServiceRegistryConfig struct {
 	Services []struct {
@@ -27,20 +33,9 @@ type ServiceRegistryConfig struct {
 }
 
 func LoadServiceRegistryConfig(filename string) (*ServiceRegistryConfig, error) {
-	if filename == "" {
-		return nil, errors.New("Config file cannot be nil")
-	}
-
 	cfg := &ServiceRegistryConfig{}
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
 
-	defer file.Close()
-	d := json.NewDecoder(file)
-	err = d.Decode(cfg)
-
+	err := serviceconfig.GetConfig(filename, serviceName, serviceRegistryConfigVersion, serviceRegistryConfigFileName, cfg)
 	if err != nil {
 		return nil, err
 	}

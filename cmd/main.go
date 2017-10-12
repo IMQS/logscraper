@@ -18,10 +18,6 @@ func main() {
 	conffile := flag.String("config", "", "Config file location")
 	flag.Parse()
 
-	if *conffile == "" {
-		log.Fatal("Usage: logscraper --config=/path/to/file.json")
-	}
-
 	err := s.LoadConfiguration(*conffile)
 	if err != nil {
 		log.Fatal(err)

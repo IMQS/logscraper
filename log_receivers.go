@@ -215,7 +215,8 @@ func InitialiseRelayers(s *Scraper) {
 	lgr.ApiKey = "9bc39e17-f062-4bef-9e28-b8456feaa999"
 	//lgr.LogEvents = make(chan []*LogMsg, 1000)
 	//go lgr.Run(lgr)
-	receivers["Loggly"] = lgr
+	// No longer sending to Loggly
+	//receivers["Loggly"] = lgr
 
 	//Datadog, only if env set and DD conf found
 	b, err := strconv.ParseBool(os.Getenv("IMQS_MONITOR"))

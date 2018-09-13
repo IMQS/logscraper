@@ -222,7 +222,7 @@ func InitialiseRelayers(s *Scraper) {
 	b, err := strconv.ParseBool(os.Getenv("IMQS_MONITOR"))
 	if err == nil && b {
 		dr := new(DatadogReceiver)
-		err1 := dr.readDatadogCfg("C:\\ProgramData\\Datadog\\datadog.conf")
+		err1 := dr.readDatadogCfg("C:\\ProgramData\\Datadog\\datadog.yaml")
 		if err1 == nil {
 			dr.s = s
 			dr.URL = "https://app.datadoghq.com/api/v1/events"

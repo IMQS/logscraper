@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
-	"github.com/IMQS/logscraper"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/IMQS/gowinsvc/service"
+	logscraper "github.com/IMQS/logscraper/core"
 )
 
 func main() {
@@ -29,7 +31,7 @@ func main() {
 	run := func() {
 		s.Run()
 	}
-	if !logscraper.RunAsService(run) {
+	if !service.RunAsService(run) {
 		// run in foreground
 		run()
 	}

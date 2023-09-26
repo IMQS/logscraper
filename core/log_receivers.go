@@ -192,7 +192,7 @@ func (dr *DatadogReceiver) readDatadogCfg(filename string) error {
 	}
 
 	if dr.ApiKey == "" {
-		return errors.New("No Datadog API key found")
+		return errors.New("no Datadog API key found")
 	}
 	//Use machine name if configured hostname is not specified.
 	//This is how the Datadog agent behaves.
@@ -231,7 +231,7 @@ func InitialiseRelayers(s *Scraper) {
 			receivers["Datadog"] = dr
 
 		} else {
-			s.logMetaf("Datadog receiver not loaded. ", err1)
+			s.logMetaf("Datadog receiver not loaded, %v", err1)
 		}
 	}
 
@@ -253,7 +253,7 @@ func (lr *LogReceiver) Receive(messages []*LogMsg) {
 }
 
 func (lr *LogReceiver) Run(relay Relay) {
-	lr.s.logMetaf("Starting Recevier: %v, apiKey:  %v", lr.URL, lr.ApiKey)
+	lr.s.logMetaf("Starting Receiver: %v, apiKey:  %v", lr.URL, lr.ApiKey)
 	for {
 		select {
 		case messages := <-lr.LogEvents:

@@ -1,4 +1,5 @@
-/* Package logscraper scrapes and parses the various IMQS log files
+/*
+	Package logscraper scrapes and parses the various IMQS log files
 
 Some design considerations:
 We don't keep log files open, because the Go standard library doesn't make it easy for us
@@ -19,13 +20,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Parser func(msg []byte) *LogMsg
@@ -144,16 +145,16 @@ func NewScraper(hostname, ownhostname, statefile, metalogfile string) *Scraper {
 func (s *Scraper) LoadConfiguration(file string) error {
 	config, err := LoadServiceRegistryConfig(file)
 	if err != nil {
-		s.logMetaf("Error opening configuraton file: %v", err)
+		s.logMetaf("Error opening configuration file: %v", err)
 		return err
 	}
 
 	logSources, errs := config.LogSources()
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		for _, err := range errs {
-			s.logMetaf("Error parsing configuraton file: %v", err)
+			s.logMetaf("Error parsing configuration file: %v", err)
 		}
-		return errors.New("Parsing configuration file failed")
+		return errors.New("parsing configuration file failed")
 	}
 
 	s.Sources = append(s.Sources, logSources...)
@@ -173,7 +174,6 @@ func (s *Scraper) Run() {
 		s.saveState()
 		time.Sleep(s.PollInterval)
 	}
-	s.logMetaf("Scraper exiting")
 }
 
 func (s *Scraper) runSource(src *LogSource) {
@@ -187,7 +187,7 @@ func (s *Scraper) runSource(src *LogSource) {
 	src.errors.reset(commonErrorFileOpen)
 	defer raw.Close()
 
-	fileLength, err := raw.Seek(0, os.SEEK_END)
+	fileLength, err := raw.Seek(0, io.SeekEnd)
 	if err != nil {
 		s.logMetaf("Unable to seek to END on %v: %v", src.Filename, err)
 		return
@@ -199,7 +199,7 @@ func (s *Scraper) runSource(src *LogSource) {
 			s.logMetaf("Log roll handling failed for %v: %v", src.Filename, err)
 			return
 		}
-		if _, err := raw.Seek(0, os.SEEK_SET); err != nil {
+		if _, err := raw.Seek(0, io.SeekStart); err != nil {
 			s.logMetaf("Unable to seek to 0 on %v: %v", src.Filename, err)
 			return
 		}
@@ -222,7 +222,7 @@ func (s *Scraper) runSource(src *LogSource) {
 		}
 	}
 
-	if _, err = raw.Seek(src.lastPos, os.SEEK_SET); err != nil {
+	if _, err = raw.Seek(src.lastPos, io.SeekStart); err != nil {
 		s.logMetaf("Seek before scan failed: %v", err)
 	}
 
@@ -281,7 +281,7 @@ func (s *Scraper) scan(logFile *os.File, src *LogSource) {
 		s.logMetaf("Discarded %v unparseable bytes from %v", discarded, src.Filename)
 	}
 	var err error
-	if src.lastPos, err = logFile.Seek(0, os.SEEK_CUR); err != nil {
+	if src.lastPos, err = logFile.Seek(0, io.SeekCurrent); err != nil {
 		s.logMetaf("Unable to find current file location after scanning %v: %v", src.Filename, err)
 		return
 	}
@@ -299,13 +299,13 @@ func (s *Scraper) saveFileSignature(logFile *os.File, src *LogSource) error {
 		return err
 	}
 	src.firstLine = sig
-	_, err = logFile.Seek(0, os.SEEK_SET)
+	_, err = logFile.Seek(0, io.SeekStart)
 	return err
 }
 
 // Read the first 64 bytes of a file, so that we can recognize it after it has been renamed
 func (s *Scraper) readFileSignature(file *os.File) ([]byte, error) {
-	if _, err := file.Seek(0, os.SEEK_SET); err != nil {
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return nil, err
 	}
 	buf := [64]byte{}
@@ -345,7 +345,7 @@ func (s *Scraper) handleLogRoll(src *LogSource) error {
 
 	// Read the last few messages that were written into this log file
 	// before it was archived.
-	_, err = orgFile.Seek(src.lastPos, os.SEEK_SET)
+	_, err = orgFile.Seek(src.lastPos, io.SeekStart)
 	if err == nil {
 		s.scan(orgFile, src)
 	}
@@ -358,7 +358,7 @@ func (s *Scraper) loadState() {
 		return
 	}
 
-	jraw, err := ioutil.ReadFile(s.StateFilename)
+	jraw, err := os.ReadFile(s.StateFilename)
 	if err != nil {
 		s.logMetaf("Unable to read state file %v", err)
 		return
@@ -398,7 +398,7 @@ func (s *Scraper) saveState() {
 		return
 	}
 
-	err = ioutil.WriteFile(s.StateFilename, raw, 0666)
+	err = os.WriteFile(s.StateFilename, raw, 0666)
 	if err != nil {
 		s.logMetaf("Error writing state file: %v", err)
 	}

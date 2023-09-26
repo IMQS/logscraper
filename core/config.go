@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/IMQS/serviceconfigsgo"
+	serviceconfig "github.com/IMQS/serviceconfigsgo"
 )
 
 var parsersByName = map[string]Parser{
@@ -41,7 +41,7 @@ func LoadServiceRegistryConfig(filename string) (*ServiceRegistryConfig, error) 
 	}
 
 	if cfg.Services == nil || len(cfg.Services) == 0 {
-		return nil, errors.New("No services found in config file")
+		return nil, errors.New("no services found in config file")
 	}
 
 	return cfg, err
